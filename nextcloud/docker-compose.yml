@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  nextcloud-db:
+    image: mariadb
+    container_name: nextcloud-db
+    command: --transaction-isolation=READ-COMMITTED --log-bin=ROW
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /opt/containers/nextcloud/database:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=$mysql_root_pswd
+      - MYSQL_PASSWORD=$mysql_pswd
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=$mysql_user
+      - MYSQL_INITDB_SKIP_TZINFO=1
+    networks:
+      - default
+
+  nextcloud-redis:
+    image: redis:alpine
+    container_name: nextcloud-redis
+    hostname: nextcloud-redis
+    restart: always
+    command: redis-server --requirepass $redis_pswd
+    networks:
+      - default
+
+  nextcloud-app:
+    image: nextcloud:latest
+    container_name: nextcloud-app
+    restart: always
+    expose:
+      - "80"
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    environment:
+        REDIS_HOST: nextcloud-redis
+        REDIS_HOST_PASSWORD: $redis_pswd
+    volumes:
+      - /opt/containers/nextcloud/app:/var/www/html
+      - /opt/containers/nextcloud/daten:/var/www/html/data
+      - /opt/containers/nextcloud/nextcloud-daten:/opt/nextcloud-daten
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.nextcloud-app.entrypoints=web"
+      - "traefik.http.routers.nextcloud-app.middlewares=tlsredir@file"
+      - "traefik.http.routers.nextcloud-app.rule=Host(`nextcloud.$host`)"
+      - "traefik.http.middlewares.nextcloud-app-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.nextcloud-app-secure.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-app-secure.rule=Host(`nextcloud.$host`)"
+      - "traefik.http.routers.nextcloud-app-secure.tls=true"
+      - "traefik.http.routers.nextcloud-app-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nextcloud-app-secure.service=nextcloud-app"
+      - "traefik.http.services.nextcloud-app.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.nextcloudredir.redirectregex.permanent=true"
+      - "traefik.http.middlewares.nextcloudredir.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.nextcloudredir.redirectregex.replacement=https://$$1/remote.php/dav/"
+      - "traefik.http.middlewares.nextcloudsts.headers.stsincludesubdomains=true"
+      - "traefik.http.middlewares.nextcloudsts.headers.stspreload=true"
+      - "traefik.http.middlewares.nextcloudsts.headers.stsseconds=31536000"
+      - "traefik.http.middlewares.nextcloudsts.headers.isdevelopment=false"
+      - "traefik.http.routers.nextcloud-app.middlewares=nextcloudredir,nextcloudsts,nextcloud-app-https-redirect"
+    networks:
+      - default
+      - web
+
+networks:
+  web:
+    external: true

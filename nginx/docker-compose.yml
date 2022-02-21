@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx
+    volumes:
+      - ./templates:/etc/nginx/templates
+      - ./html:/usr/share/nginx/html
+    environment:
+      - NGINX_HOST=$host
+      - NGINX_PORT=80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.entrypoints=web"
+      - "traefik.http.routers.nginx.rule=Host(`$host`)"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

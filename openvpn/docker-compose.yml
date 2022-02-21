@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  openvpn-udp:
+    image: kylemanna/openvpn
+    container_name: openvpn-udp
+    cap_add:
+      - NET_ADMIN
+    labels:
+      - "traefik.enable=true"
+      - "traefik.udp.routers.openvpn-udp.entrypoints=openvpn"
+      - "traefik.udp.services.openvpn-udp.loadbalancer.server.port=1194"
+    volumes:
+      - ./openvpn-udp:/etc/openvpn/
+    restart: always
+    networks:
+      web:  
+      vpn-network:
+        ipv4_address: 172.21.0.3
+
+  openvpn-tcp:
+    image: kylemanna/openvpn
+    container_name: openvpn-tcp
+    cap_add:
+      - NET_ADMIN
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.openvpn-tcp.rule=HostSNI(`$HOST`)"
+      - "traefik.tcp.routers.openvpn-tcp.entrypoints=websecure"
+      - "traefik.tcp.routers.openvpn-tcp.service=openvpn-tcp"
+      - "traefik.tcp.routers.opvenpn-tcp.tls=true"
+      - "traefik.tcp.routers.openvpn-tcp.tls.certresolver=letsencrypt"
+      - "traefik.tcp.services.openvpn-tcp.loadbalancer.server.port=80"
+    volumes:
+      - ./openvpn-tcp:/etc/openvpn/
+    restart: always
+    networks:
+      web:
+      vpn-network:
+        ipv4_address: 172.21.0.4
+
+  openvpn-schule:
+    image: kylemanna/openvpn
+    container_name: openvpn-schule
+    cap_add:
+      - NET_ADMIN
+    labels:
+      - "traefik.enable=true"
+      - "traefik.udp.routers.openvpn-schule.entrypoints=openvpn-schule"
+      - "traefik.udp.services.openvpn-schule.loadbalancer.server.port=1194"
+    volumes:
+      - ./openvpn-schule:/etc/openvpn/
+    restart: always
+    networks:
+      web:
+      vpn-network:
+        ipv4_address: 172.21.0.5
+
+
+
+
+networks:
+  vpn-network:
+    external: true
+  web:
+    external: true

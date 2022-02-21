@@ -1,0 +1,15 @@
+[http.middlewares]
+  [http.middlewares.tlsredir.redirectScheme]
+    scheme = "https"
+    permanent = true
+  [http.middlewares.simpleAuth.basicAuth]
+    users = [
+      "$USER:$PW_SHA"]
+  [http.middlewares.local.ipWhiteList]
+    sourceRange = ["172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/24"]
+
+[http.routers.api]
+  rule = "Host(`traefik.local`)"
+  entrypoints = "web"
+  middlewares = ["simpleAuth,local@file"]
+  service = "api@internal"

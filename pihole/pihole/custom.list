@@ -1,0 +1,6 @@
+$ip pihole.local
+$ip traefik.local
+$ip grafana.local
+$ip nextcloud.$host
+$ip db.local
+$ip wordpress.local

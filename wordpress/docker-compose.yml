@@ -1,0 +1,40 @@
+version: "3.9"
+    
+services:
+  db:
+    container_name: wordpress-db
+    image: mysql:latest
+    volumes:
+      - ./db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: $mysql_root_pswd
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: $mysql_user
+      MYSQL_PASSWORD: $mysql_pswd
+    networks:
+      - default
+    
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - db
+    image: wordpress:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wordpress.entrypoints=web"
+      - "traefik.http.routers.wordpress.rule=Host(`wordpress.local`)"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: $mysql_user
+      WORDPRESS_DB_PASSWORD: $mysql_pswd
+      WORDPRESS_DB_NAME: wordpress
+    networks:
+      - web
+      - default
+
+networks:
+  web:
+    external: true
+  
